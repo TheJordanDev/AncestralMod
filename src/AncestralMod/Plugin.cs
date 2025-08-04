@@ -1,5 +1,6 @@
 ﻿using System;
 using AncestralMod.Events;
+using AncestralMod.Modules;
 using BepInEx;
 using BepInEx.Logging;
 using HarmonyLib;
@@ -14,10 +15,10 @@ public partial class Plugin : BaseUnityPlugin
     internal static ManualLogSource Log { get; private set; } = null!;
 
     private static Harmony? _harmony;
+    private ModuleManager? _moduleManager;
 
     private static readonly Type[] PatchTypes = [
-        // typeof(Patches.JumpPassoutPatch),
-        typeof(Patches.ThrowablePassportPatch),
+        typeof(Patches.PassportPatch),
         typeof(Patches.KnockoutPatch)
     ];
 
@@ -31,11 +32,23 @@ public partial class Plugin : BaseUnityPlugin
 
         SetupPatches();
         SetupEvents();
+        SetupModules();
+    }
+
+    private void Update()
+    {
+        _moduleManager?.Update();
+    }
+
+    private void FixedUpdate()
+    {
+        _moduleManager?.FixedUpdate();
     }
 
     private void OnDestroy()
     {
         RemovePatches();
+        _moduleManager?.Destroy();
     }
 
 
@@ -73,6 +86,12 @@ public partial class Plugin : BaseUnityPlugin
     protected void SetupEvents()
     {
         SceneChangeListener.Initialize();
+    }
+
+    protected void SetupModules()
+    {
+        _moduleManager = new ModuleManager();
+        _moduleManager.Initialize();
     }
 
 }
