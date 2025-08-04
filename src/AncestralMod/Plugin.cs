@@ -1,4 +1,5 @@
 ﻿using System;
+using AncestralMod.Events;
 using BepInEx;
 using BepInEx.Logging;
 using HarmonyLib;
@@ -15,7 +16,8 @@ public partial class Plugin : BaseUnityPlugin
     private static Harmony? _harmony;
 
     private static readonly Type[] PatchTypes = [
-        typeof(Patches.JumpPassoutPatch),
+        // typeof(Patches.JumpPassoutPatch),
+        typeof(Patches.ThrowablePassportPatch),
         typeof(Patches.KnockoutPatch)
     ];
 
@@ -23,23 +25,18 @@ public partial class Plugin : BaseUnityPlugin
     {
         Instance = this;
 
-		ConfigHandler.Initialize(Config);
+        ConfigHandler.Initialize(Config);
         Log = Logger;
         Debug.Log("AncestralMod is starting...");
 
         SetupPatches();
-    }
-
-    private void Start()
-    {
-
+        SetupEvents();
     }
 
     private void OnDestroy()
     {
         RemovePatches();
     }
-
 
 
     protected void SetupPatches()
@@ -72,4 +69,10 @@ public partial class Plugin : BaseUnityPlugin
             Log.LogError($"Failed to remove patches: {e}");
         }
     }
+
+    protected void SetupEvents()
+    {
+        SceneChangeListener.Initialize();
+    }
+
 }

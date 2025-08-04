@@ -8,7 +8,10 @@ class KnockoutPatch
 	[HarmonyPostfix]
 	static void Postfix(Item __instance)
 	{
-		__instance.gameObject.AddComponent<Knocker>();
-		Debug.Log("Knocker component added to Item: " + __instance.name);
+		if (__instance.itemState == ItemState.Held || __instance.itemState == ItemState.InBackpack)
+		{
+			return;
+		}
+		__instance.gameObject.AddComponent<Bonkable>();
 	}
 }
