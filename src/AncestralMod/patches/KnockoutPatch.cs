@@ -8,10 +8,7 @@ class KnockoutPatch
 	[HarmonyPostfix]
 	static void Postfix(Item __instance)
 	{
-		if (__instance.itemState == ItemState.Held || __instance.itemState == ItemState.InBackpack)
-		{
-			return;
-		}
+		if (__instance.itemState == ItemState.Held || __instance.itemState == ItemState.InBackpack) return;
 		__instance.gameObject.AddComponent<Bonkable>();
 	}
 }

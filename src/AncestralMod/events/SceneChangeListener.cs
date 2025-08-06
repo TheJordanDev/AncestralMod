@@ -1,3 +1,4 @@
+using AncestralMod.UI;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -13,7 +14,8 @@ public class SceneChangeListener
 
 	private static void OnSceneLoaded(Scene scene, LoadSceneMode mode)
 	{
-		if (scene.name.ToLower() == "airport") {
+		if (scene.name.ToLower() == "airport")
+		{
 			AirportCheckInKiosk checkinKiosk = Object.FindFirstObjectByType<AirportCheckInKiosk>();
 			AirportInviteFriendsKiosk friendKiosk = Object.FindFirstObjectByType<AirportInviteFriendsKiosk>();
 
@@ -22,6 +24,19 @@ public class SceneChangeListener
 
 			friendKiosk.transform.position = new Vector3(-8, 1.5f, 52.5f);
 			friendKiosk.transform.eulerAngles = new Vector3(270, 180, 0);
+
+			PlayerMoveZone[] conveyors = Object.FindObjectsByType<PlayerMoveZone>(FindObjectsSortMode.None);
+			foreach (var conveyor in conveyors)
+			{
+				conveyor.Force = 500f;
+			}
+		}
+
+		if (!BetterBugleUI.Instance)
+		{
+			GameObject uiObject = new("BetterBugleUI");
+			Object.DontDestroyOnLoad(uiObject);
+			uiObject.AddComponent<BetterBugleUI>();
 		}
 	}
 

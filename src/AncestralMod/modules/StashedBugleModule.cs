@@ -8,7 +8,6 @@ class StashedBugleModule : Module
 	public override string ModuleName => "StashedBugle";
 
 	private readonly string _bugleItemName = "Bugle";
-	private KeyCode _toggleKey = ConfigHandler.ToggleBugle.Value;
 
 	public override void Initialize()
 	{
@@ -17,7 +16,7 @@ class StashedBugleModule : Module
 
 	public override void Update()
 	{
-		if (!Input.GetKeyDown(_toggleKey)) return;
+		if (!Input.GetKeyDown(ConfigHandler.ToggleBugle.Value)) return;
 
 		Character localCharacter = Character.localCharacter;
 		if (localCharacter == null) return;

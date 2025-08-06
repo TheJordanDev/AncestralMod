@@ -1,4 +1,6 @@
 ﻿using System;
+using System.IO;
+using System.Reflection;
 using AncestralMod.Events;
 using AncestralMod.Modules;
 using BepInEx;
@@ -19,7 +21,8 @@ public partial class Plugin : BaseUnityPlugin
 
     private static readonly Type[] PatchTypes = [
         typeof(Patches.PassportPatch),
-        typeof(Patches.KnockoutPatch)
+        typeof(Patches.KnockoutPatch),
+        typeof(Patches.BetterBuglePatch),
     ];
 
     private void Awake()
@@ -50,7 +53,6 @@ public partial class Plugin : BaseUnityPlugin
         RemovePatches();
         _moduleManager?.Destroy();
     }
-
 
     protected void SetupPatches()
     {

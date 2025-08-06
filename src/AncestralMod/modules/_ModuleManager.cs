@@ -13,6 +13,8 @@ public class ModuleManager
     // Define which module types to automatically load
     private static readonly Type[] ModuleTypes = [
         typeof(StashedBugleModule),
+        typeof(ConfigEditorModule),
+        typeof(BetterBugleModule),
     ];
 
     public void Initialize()
