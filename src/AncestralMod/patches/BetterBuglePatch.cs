@@ -18,8 +18,8 @@ public class BetterBuglePatch
 	{
 		if (__instance.itemState != ItemState.Held) return;
 		if (__instance.UIData == null) return;
-
-		if (__instance.GetComponent<BugleSFX>() != null)
+		
+		if (__instance.TryGetComponent<BugleSFX>(out var bugleSFX))
 		{
 			Action secondaryAction = OnRightClick;
 			Action<float> scrollAction = OnScroll;
@@ -96,9 +96,9 @@ public class BetterBuglePatch
 		{
 			if (__instance.character == null || __instance.character != Character.localCharacter) return;
 			Item? currentItem = __instance.character.data.currentItem;
-			if (currentItem == null || currentItem.UIData == null || currentItem.GetComponent<BugleSFX>() == null) return;
+			if (currentItem == null || currentItem.UIData == null) return;
 			if (currentItem.itemState != ItemState.Held) return;
-			if (currentItem.GetComponent<BugleSFX>() != null)
+			if (currentItem.TryGetComponent<BugleSFX>(out var bugleSFX))
 			{
 				Song? song = Song.Songs.GetValueOrDefault(BetterBugleModule.CurrentSongName);
 				if (song == null) return;
