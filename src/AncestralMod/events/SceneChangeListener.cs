@@ -38,6 +38,13 @@ public class SceneChangeListener
 			Object.DontDestroyOnLoad(uiObject);
 			uiObject.AddComponent<BetterBugleUI>();
 		}
+
+		if (!ConfigEditorUI.Instance)
+		{
+			GameObject configEditorObject = new("ConfigEditorUI");
+			Object.DontDestroyOnLoad(configEditorObject);
+			configEditorObject.AddComponent<ConfigEditorUI>();
+		}
 	}
 
 }

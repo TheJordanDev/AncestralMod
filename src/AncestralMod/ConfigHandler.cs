@@ -5,12 +5,13 @@ namespace AncestralMod;
 
 public static class ConfigHandler
 {
-    private static ConfigFile config = null!;
+    public static ConfigFile config { get; private set; } = null!;
 
     public static ConfigEntry<KeyCode> OpenConfigEditor { get; private set; } = null!;
 
     // Better Bugle settings
     public static ConfigEntry<float> BugleVolume { get; private set; } = null!;
+    public static ConfigEntry<string> BugleSoundGitRepository { get; private set; } = null!;
 
     // Stashed Bugle settings
     public static ConfigEntry<KeyCode> ToggleBugle { get; private set; } = null!;
@@ -27,7 +28,7 @@ public static class ConfigHandler
             "Key Bindings",
             "OpenConfigEditor",
             KeyCode.F3,
-            "Keyboard key used to open the configuration editor"
+            "Open Configuration Editor UI"
         );
 
         // Better Bugle settings
@@ -36,34 +37,23 @@ public static class ConfigHandler
             "BugleVolume",
             0.5f,
             new ConfigDescription(
-                "Volume of the bugle sound",
+                "Bugle Sound Volume",
                 new AcceptableValueRange<float>(0f, 1f)
             )
         );
 
-        // Stashed Bugle settings
+        BugleSoundGitRepository = config.Bind(
+            "Better Bugle",
+            "BugleSoundGitRepository",
+            "https://gitlab.com/thejordan.dev/peak-ancestralmod-audiobank.git"
+        );
 
+        // Stashed Bugle settings
         ToggleBugle = config.Bind(
             "Control",
             "ToggleBugle",
             KeyCode.V,
-            "Keyboard key used to spawn or destroy held bugle"
-        );
-
-        // Seed Override settings
-
-        EnableSeedOverride = config.Bind(
-            "Seed Override",
-            "EnableSeedOverride",
-            false,
-            "Enable or disable the seed override feature"
-        );
-
-        SeedOverride = config.Bind(
-            "Seed Override",
-            "SeedOverride",
-            3673,
-            "The seed to use when the seed override is enabled"
+            "Give / destroy Bugle"
         );
 
     }
