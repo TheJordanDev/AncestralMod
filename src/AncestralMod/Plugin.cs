@@ -1,6 +1,5 @@
 ﻿using System;
-using System.IO;
-using System.Reflection;
+using System.Collections.Generic;
 using AncestralMod.Events;
 using AncestralMod.Modules;
 using BepInEx;
@@ -19,10 +18,9 @@ public partial class Plugin : BaseUnityPlugin
     private static Harmony? _harmony;
     private ModuleManager? _moduleManager;
 
-    private static readonly Type[] PatchTypes = [
+    private static readonly List<Type> PatchTypes = [
         typeof(Patches.PassportPatch),
         typeof(Patches.KnockoutPatch),
-        typeof(Patches.BetterBuglePatch),
     ];
 
     private void Awake()
@@ -56,8 +54,15 @@ public partial class Plugin : BaseUnityPlugin
 
     protected void SetupPatches()
     {
+        List<Type> allPatches = [.. PatchTypes];
+        foreach (var module in _moduleManager?.GetAllModules() ?? [])
+        {
+            if (module == null) continue;
+            allPatches.AddRange(module.GetPatches());
+        }
+
         _harmony ??= new Harmony(Info.Metadata.GUID);
-        foreach (var patchType in PatchTypes)
+        foreach (var patchType in allPatches)
         {
             try
             {
@@ -73,7 +78,6 @@ public partial class Plugin : BaseUnityPlugin
     protected void RemovePatches()
     {
         if (_harmony == null) return;
-
         try
         {
             _harmony.UnpatchSelf();

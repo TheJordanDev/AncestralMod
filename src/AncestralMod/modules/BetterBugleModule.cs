@@ -37,11 +37,15 @@ class BetterBugleModule : Module
 
 	public static readonly string bugleItemName = "Bugle";
 
+	public override List<Type> GetPatches()
+	{
+		return [typeof(Patches.BetterBuglePatch)];
+	}
+
 	public override void Initialize()
 	{
 		Debug.Log($"Module '{ModuleName}' initialized");
 		ManageLocalizedText();
-		GetAudioClips();
 	}
 
 	public override void Destroy()
@@ -86,7 +90,7 @@ class BetterBugleModule : Module
 						audioSource.Stop();
 						audioSource.clip = null;
 					}
-				}       
+				}
 				UnityEngine.Object.Destroy(song.AudioClip);
 			}
 		}
@@ -105,7 +109,7 @@ class BetterBugleModule : Module
 	private IEnumerator LoadAllAudioClipsCoroutine(string directoryPath)
 	{
 		List<(string filePath, string ext, string name)> filesToLoad = new();
-		
+
 		foreach (var ext in AudioTypes.Keys)
 		{
 			var files = Directory.GetFiles(directoryPath, $"*.{ext}", SearchOption.TopDirectoryOnly);
@@ -124,22 +128,22 @@ class BetterBugleModule : Module
 		for (int i = 0; i < filesToLoad.Count; i += BATCH_SIZE)
 		{
 			List<Coroutine> batchCoroutines = new();
-			
+
 			for (int j = i; j < Mathf.Min(i + BATCH_SIZE, filesToLoad.Count); j++)
 			{
 				var (filePath, ext, name) = filesToLoad[j];
 				Coroutine loadCoroutine = Plugin.Instance.StartCoroutine(LoadAudioClipCoroutine(filePath, ext, name, Song.Songs));
 				batchCoroutines.Add(loadCoroutine);
 			}
-			
+
 			// Wait for this batch to complete
 			foreach (var coroutine in batchCoroutines) yield return coroutine;
 			loadedCount += batchCoroutines.Count;
-			
+
 			BetterBugleUI.Instance?.ShowActionbar($"Loading songs... {loadedCount}/{filesToLoad.Count}");
 			yield return null;
 		}
-		
+
 		OnAllAudioClipsLoaded();
 	}
 

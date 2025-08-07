@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+
 namespace AncestralMod.Modules;
 
 public abstract class Module
@@ -17,6 +20,11 @@ public abstract class Module
     public virtual void FixedUpdate()
     {
     }
+    
+    public virtual List<Type> GetPatches()
+    {
+        return [];
+    }
 
     public virtual void Destroy()
     {
@@ -34,4 +42,5 @@ public abstract class Module
         IsEnabled = false;
         Plugin.Log.LogInfo($"Module '{ModuleName}' disabled");
     }
+
 }

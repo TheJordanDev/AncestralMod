@@ -45,7 +45,8 @@ public static class ConfigHandler
         BugleSoundGitRepository = config.Bind(
             "Better Bugle",
             "BugleSoundGitRepository",
-            "https://gitlab.com/thejordan.dev/peak-ancestralmod-audiobank.git"
+            "https://gitlab.com/thejordan.dev/peak-ancestralmod-audiobank.git",
+            "Sounds git repository URL"
         );
 
         // Stashed Bugle settings
