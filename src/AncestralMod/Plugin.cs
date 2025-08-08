@@ -21,6 +21,7 @@ public partial class Plugin : BaseUnityPlugin
     private static readonly List<Type> PatchTypes = [
         typeof(Patches.PassportPatch),
         typeof(Patches.KnockoutPatch),
+        typeof(Patches.BetterBuglePatch),
     ];
 
     private void Awake()
@@ -54,15 +55,8 @@ public partial class Plugin : BaseUnityPlugin
 
     protected void SetupPatches()
     {
-        List<Type> allPatches = [.. PatchTypes];
-        foreach (var module in _moduleManager?.GetAllModules() ?? [])
-        {
-            if (module == null) continue;
-            allPatches.AddRange(module.GetPatches());
-        }
-
         _harmony ??= new Harmony(Info.Metadata.GUID);
-        foreach (var patchType in allPatches)
+        foreach (var patchType in PatchTypes)
         {
             try
             {

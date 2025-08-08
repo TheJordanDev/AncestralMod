@@ -3,7 +3,6 @@ using System.Collections;
 using System.Collections.Generic;
 using AncestralMod.Modules;
 using AncestralMod.UI;
-using ExitGames.Client.Photon.StructWrapping;
 using HarmonyLib;
 using UnityEngine;
 
@@ -56,7 +55,7 @@ public class BetterBuglePatch
 		{
 			BetterBugleModule.HadConfirmation = false; // Reset confirmation state
 			BetterBugleUI.Instance?.ShowActionbar("Refreshing songs...");
-			BetterBugleModule.Instance.GetAudioClips();
+			BetterBugleModule.Instance?.GetAudioClips();
 		}
 
 	}

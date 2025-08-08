@@ -6,9 +6,10 @@ class KnockoutPatch
 {
 	[HarmonyPatch(typeof(Item), "Awake")]
 	[HarmonyPostfix]
-	static void Postfix(Item __instance)
+	static void ItemAwakePostfix(Item __instance)
 	{
 		if (__instance.itemState == ItemState.Held || __instance.itemState == ItemState.InBackpack) return;
 		__instance.gameObject.AddComponent<Bonkable>();
 	}
+
 }
