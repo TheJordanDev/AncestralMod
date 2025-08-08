@@ -21,7 +21,7 @@ public abstract class Module
     {
     }
     
-    public virtual List<Type> GetPatches()
+    public virtual Type[] GetPatches()
     {
         return [];
     }

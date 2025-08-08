@@ -17,13 +17,17 @@ public class SceneChangeListener
 		if (scene.name.ToLower() == "airport")
 		{
 			AirportCheckInKiosk checkinKiosk = Object.FindFirstObjectByType<AirportCheckInKiosk>();
+			if (checkinKiosk != null)
+			{
+				checkinKiosk.transform.position = new Vector3(-11, 1.5f, 52.5f);
+				checkinKiosk.transform.eulerAngles = new Vector3(270, 0, 0);
+			}
 			AirportInviteFriendsKiosk friendKiosk = Object.FindFirstObjectByType<AirportInviteFriendsKiosk>();
-
-			checkinKiosk.transform.position = new Vector3(-11, 1.5f, 52.5f);
-			checkinKiosk.transform.eulerAngles = new Vector3(270, 0, 0);
-
-			friendKiosk.transform.position = new Vector3(-8, 1.5f, 52.5f);
-			friendKiosk.transform.eulerAngles = new Vector3(270, 180, 0);
+			if (friendKiosk != null)
+			{
+				friendKiosk.transform.position = new Vector3(-8, 1.5f, 52.5f);
+				friendKiosk.transform.eulerAngles = new Vector3(270, 180, 0);
+			}
 
 			PlayerMoveZone[] conveyors = Object.FindObjectsByType<PlayerMoveZone>(FindObjectsSortMode.None);
 			foreach (var conveyor in conveyors)

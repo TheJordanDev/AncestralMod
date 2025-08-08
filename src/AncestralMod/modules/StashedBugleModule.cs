@@ -8,6 +8,9 @@ class StashedBugleModule : Module
 	public override string ModuleName => "StashedBugle";
 
 	private readonly string _bugleItemName = "Bugle";
+	private readonly string _megaphoneItemName = "Megaphone";
+
+	private float? lastPressTime = null;
 
 	public override void Initialize()
 	{
@@ -16,17 +19,33 @@ class StashedBugleModule : Module
 
 	public override void Update()
 	{
-		if (!Input.GetKeyDown(ConfigHandler.ToggleBugle.Value)) return;
+		if (Input.GetKeyDown(ConfigHandler.ToggleBugle.Value)) ToggleBugle();
+	}
+
+	private void ToggleBugle()
+	{
+		if (lastPressTime == null || Time.time - lastPressTime > 1f) lastPressTime = Time.time;
+		else return;
 
 		Character localCharacter = Character.localCharacter;
 		if (localCharacter == null) return;
 
 		Item heldItem = localCharacter.data.currentItem;
-		if (heldItem != null && heldItem.UIData.itemName == _bugleItemName)
+		if (heldItem != null)
 		{
-			localCharacter.refs.items.DestroyHeldItemRpc();
-			localCharacter.player.EmptySlot(localCharacter.refs.items.currentSelectedSlot);
-			localCharacter.player.RPCRemoveItemFromSlot(localCharacter.refs.items.currentSelectedSlot.Value);
+			if (heldItem.UIData.itemName == _bugleItemName)
+			{
+				localCharacter.refs.items.DestroyHeldItemRpc();
+				localCharacter.player.EmptySlot(localCharacter.refs.items.currentSelectedSlot);
+				localCharacter.player.RPCRemoveItemFromSlot(localCharacter.refs.items.currentSelectedSlot.Value);
+				
+				localCharacter.refs.items.SpawnItemInHand(_megaphoneItemName);
+			} else if (heldItem.UIData.itemName == _megaphoneItemName)
+			{
+				localCharacter.refs.items.DestroyHeldItemRpc();
+				localCharacter.player.EmptySlot(localCharacter.refs.items.currentSelectedSlot);
+				localCharacter.player.RPCRemoveItemFromSlot(localCharacter.refs.items.currentSelectedSlot.Value);
+			}
 		}
 		else if (heldItem == null)
 		{

@@ -9,7 +9,9 @@ using System.Linq;
 using UnityEngine.Audio;
 using Zorro.Settings;
 using AncestralMod.UI;
+using AncestralMod.Utils;
 using UnityEngine.SceneManagement;
+using System.Threading.Tasks;
 
 namespace AncestralMod.Modules;
 
@@ -17,6 +19,8 @@ class BetterBugleModule : Module
 {
 
 	public static BetterBugleModule? Instance { get; private set; }
+
+	public static readonly string SoundsDirectory = Path.Combine(BepInEx.Paths.BepInExRootPath, "bugleSounds");
 
 	public static readonly Dictionary<string, AudioType> AudioTypes = new()
 	{
@@ -27,6 +31,7 @@ class BetterBugleModule : Module
 	};
 
 	public static bool IsLoading { get; private set; } = false;
+	public static bool IsSyncing { get; private set; } = false;
 	public static int CurrentSongIndex { get; set; } = 0;
 	public static string CurrentSongName { get; set; } = "None";
 	public static bool HadConfirmation { get; set; } = false;
@@ -36,7 +41,7 @@ class BetterBugleModule : Module
 
 	public static readonly string bugleItemName = "Bugle";
 
-	public override List<Type> GetPatches()
+	public override Type[] GetPatches()
 	{
 		return [typeof(Patches.BetterBuglePatch)];
 	}
@@ -49,6 +54,15 @@ class BetterBugleModule : Module
 		ManageLocalizedText();
 		GetAudioClips();
 		base.Initialize();
+	}
+
+	public override void Update()
+	{
+		if (Input.GetKeyDown(ConfigHandler.SyncAudioRepository.Value))
+		{
+			Instance?.TrySyncAndLoadAudioClips();
+		}
+		base.Update();
 	}
 
 	private static void OnSceneLoaded(Scene scene, LoadSceneMode mode)
@@ -81,12 +95,110 @@ class BetterBugleModule : Module
 
 	public void GetAudioClips()
 	{
-		if (IsLoading) return;
-		string soundsPath = Path.Combine(PathHelper.GetModDirectory(), "Sounds");
-		if (!Directory.Exists(soundsPath)) return;
+		if (IsLoading || IsSyncing) return;
+		if (!Directory.Exists(SoundsDirectory)) return;
 		ClearAudioClips();
 		IsLoading = true;
-		Plugin.Instance.StartCoroutine(LoadAllAudioClipsCoroutine(soundsPath));
+		Plugin.Instance.StartCoroutine(LoadAllAudioClipsCoroutine(SoundsDirectory));
+	}
+
+	public void TrySyncAndLoadAudioClips()
+	{
+		if (IsSyncing) return;
+		Task.Run(() => SyncAndLoadAudioClipsCoroutine());
+	}
+
+	private async Task SyncAndLoadAudioClipsCoroutine()
+	{
+		if (IsSyncing || IsLoading) return;
+		
+		GitService git = new(ConfigHandler.BugleSoundGitRepository.Value, SoundsDirectory);		
+		BetterBugleUI.Instance?.ShowActionbar("Syncing audio repository...");
+		IsSyncing = true;
+		bool isRepo = git.IsRepository();
+		bool folderChanged = false;
+		if (!isRepo)
+		{
+			bool success = await git.CloneAsync();			
+			if (!success) 
+			{
+				BetterBugleUI.Instance?.ShowActionbar("Failed to clone audio repository."); 
+				IsSyncing = false; 
+				return; 
+			}
+			
+			folderChanged = true;
+
+			var clonedFiles = Directory.GetFiles(SoundsDirectory, "*", SearchOption.AllDirectories)
+				.Where(f => !f.Contains(".git")).ToArray();
+			
+			if (clonedFiles.Length == 0)
+			{
+				BetterBugleUI.Instance?.ShowActionbar("Checking out files...");
+				bool checkoutSuccess = await git.CheckoutFilesAsync();
+				
+				if (!checkoutSuccess) 
+				{ 
+					BetterBugleUI.Instance?.ShowActionbar("Failed to checkout files from repository."); 
+					IsSyncing = false; 
+					return; 
+				}
+				
+				// Check again after checkout
+				var checkoutFiles = Directory.GetFiles(SoundsDirectory, "*", SearchOption.AllDirectories)
+					.Where(f => !f.Contains(".git")).ToArray();
+			}
+		}
+		else
+		{
+			bool needsPull = await git.NeedsPullAsync();
+			
+			if (needsPull)
+			{
+				bool success = await git.PullAsync();				
+				
+				if (!success)
+				{
+					folderChanged = true;
+					BetterBugleUI.Instance?.ShowActionbar("Failed to pull audio repository updates.");
+					IsSyncing = false;
+					return;
+				}
+			}
+		}
+
+		
+		var files = Directory.GetFiles(SoundsDirectory, "*", SearchOption.AllDirectories)
+			.Where(f =>
+				!f.Contains($"{Path.DirectorySeparatorChar}.git{Path.DirectorySeparatorChar}") &&
+				Path.GetFileName(f) != ".git" &&
+				!AudioTypes.Keys.Contains(Path.GetExtension(f).TrimStart('.').ToLowerInvariant())
+			).ToList();
+
+		foreach (var file in files)
+		{
+			try
+			{
+				File.Delete(file);
+			}
+			catch (Exception ex)
+			{
+				Debug.LogWarning($"Failed to delete file {file}: {ex.Message}");
+			}
+		}
+
+		IsSyncing = false;
+		if (folderChanged)
+		{
+			BetterBugleUI.Instance?.ShowActionbar("Loading audio clips...");
+			ClearAudioClips();
+			IsLoading = true;
+			Plugin.Instance.StartCoroutine(LoadAllAudioClipsCoroutine(SoundsDirectory));
+		}
+		else
+		{
+			BetterBugleUI.Instance?.ShowActionbar("Audio repository is up to date.");
+		}
 	}
 
 	private void ClearAudioClips()
@@ -116,6 +228,10 @@ class BetterBugleModule : Module
 		if (Song.Songs.Count == 0) Debug.LogWarning("No songs loaded. Please ensure audio files are in the Sounds directory.");
 		else Debug.Log($"🎵 {Song.Songs.Count} songs loaded !");
 		BetterBugleUI.Instance?.ShowActionbar($"{Song.Songs.Count} songs loaded !");
+
+		if (!Song.Songs.ContainsKey(CurrentSongName))
+			CurrentSongName = Song.GetSongNames_Alphabetically()[CurrentSongIndex];
+
 		IsLoading = false;
 	}
 
@@ -129,6 +245,7 @@ class BetterBugleModule : Module
 			foreach (var file in files)
 			{
 				string name = Path.GetFileNameWithoutExtension(file);
+				name = name.Replace("_", " ");
 				if (!Song.Songs.ContainsKey(name))
 				{
 					filesToLoad.Add((file, ext, name));
@@ -216,9 +333,13 @@ public class BetterBugleSFX : MonoBehaviourPun
 {
 	public Item? item;
 	public MagicBugle? magicBugle;
+	public bool isMegaphone = false;
 	public Song? song;
 	public AudioSource? audioSource;
-	public float GetVolume => ConfigHandler.BugleVolume.Value;
+	public float GetVolume => (isMegaphone && item?._holderCharacter != Character.localCharacter) ? ConfigHandler.BugleVolume.Value * 2 : ConfigHandler.BugleVolume.Value;
+
+	public float maxBugleDistance = 500;
+	public float maxMegaphoneDistance = 1000;
 
 	public bool hold = false;
 	public bool isTooting = false;
@@ -226,12 +347,14 @@ public class BetterBugleSFX : MonoBehaviourPun
 	private void Start()
 	{
 		item = GetComponent<Item>();
-		magicBugle = GetComponent<MagicBugle>();
+		TryGetComponent<MagicBugle>(out magicBugle);
 		audioSource = gameObject.AddComponent<AudioSource>();
 		audioSource.playOnAwake = false;
+		audioSource.maxDistance = isMegaphone ? maxMegaphoneDistance : maxBugleDistance;
 		audioSource.spatialBlend = 1f;
 		audioSource.volume = 0f;
 		audioSource.loop = true;
+		song = Song.Songs.GetValueOrDefault(BetterBugleModule.CurrentSongName);
 	}
 
 	private void Update()

@@ -18,10 +18,9 @@ public partial class Plugin : BaseUnityPlugin
     private static Harmony? _harmony;
     private ModuleManager? _moduleManager;
 
-    private static readonly List<Type> PatchTypes = [
+    private static readonly List<Type> _globalPatches = [
         typeof(Patches.PassportPatch),
         typeof(Patches.KnockoutPatch),
-        typeof(Patches.BetterBuglePatch),
     ];
 
     private void Awake()
@@ -31,10 +30,9 @@ public partial class Plugin : BaseUnityPlugin
         ConfigHandler.Initialize(Config);
         Log = Logger;
         Debug.Log("AncestralMod is starting...");
-
-        SetupPatches();
         SetupEvents();
         SetupModules();
+        SetupPatches();
     }
 
     private void Update()
@@ -56,7 +54,16 @@ public partial class Plugin : BaseUnityPlugin
     protected void SetupPatches()
     {
         _harmony ??= new Harmony(Info.Metadata.GUID);
-        foreach (var patchType in PatchTypes)
+        Type[] patches = [.. _globalPatches];
+        if (_moduleManager != null)
+        {
+            foreach (Module module in _moduleManager.GetAllModules())
+            {
+                patches = [.. patches, .. module.GetPatches()];
+            }
+        }
+
+        foreach (var patchType in patches)
         {
             try
             {

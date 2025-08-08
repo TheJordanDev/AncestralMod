@@ -17,8 +17,10 @@ public class BetterBuglePatch
 	{
 		if (__instance.itemState != ItemState.Held) return;
 		if (__instance.UIData == null) return;
-		
-		if (__instance.TryGetComponent<BugleSFX>(out var bugleSFX))
+
+		List<string> supportedItemNames = ["Bugle", "Bugle_Magic", "Megaphone"];
+
+		if (!supportedItemNames.Contains(__instance.UIData.itemName)) return;
 		{
 			Action secondaryAction = OnRightClick;
 			Action<float> scrollAction = OnScroll;
@@ -32,7 +34,8 @@ public class BetterBuglePatch
 			__instance.UIData.secondaryInteractPrompt = "SONG_LIST";
 			__instance.UIData.scrollInteractPrompt = "CHANGE_SONG";
 
-			__instance.gameObject.AddComponent<BetterBugleSFX>();
+			BetterBugleSFX betterBugleSFX = __instance.gameObject.AddComponent<BetterBugleSFX>();
+			if (__instance.UIData.itemName == "Megaphone") betterBugleSFX.isMegaphone = true;
 		}
 	}
 

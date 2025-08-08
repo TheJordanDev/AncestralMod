@@ -8,10 +8,13 @@ public static class ConfigHandler
     public static ConfigFile config { get; private set; } = null!;
 
     public static ConfigEntry<KeyCode> OpenConfigEditor { get; private set; } = null!;
+    public static ConfigEntry<KeyCode> SyncAudioRepository { get; private set; } = null!;
 
     // Better Bugle settings
     public static ConfigEntry<float> BugleVolume { get; private set; } = null!;
     public static ConfigEntry<string> BugleSoundGitRepository { get; private set; } = null!;
+    public static ConfigEntry<bool> AutoSyncAudioRepository { get; private set; } = null!;
+    public static ConfigEntry<string> AudioRepositorySubdirectory { get; private set; } = null!;
 
     // Stashed Bugle settings
     public static ConfigEntry<KeyCode> ToggleBugle { get; private set; } = null!;
@@ -47,6 +50,13 @@ public static class ConfigHandler
             "BugleSoundGitRepository",
             "https://gitlab.com/thejordan.dev/peak-ancestralmod-audiobank.git",
             "Sounds git repository URL"
+        );
+
+        SyncAudioRepository = config.Bind(
+            "Better Bugle",
+            "SyncAudioRepository",
+            KeyCode.L,
+            "Manually sync audio repository from git"
         );
 
         // Stashed Bugle settings
