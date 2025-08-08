@@ -11,7 +11,7 @@ class StashedBugleModule : Module
 
 	public override void Initialize()
 	{
-		Debug.Log($"Module '{ModuleName}' initialized");
+		base.Initialize();
 	}
 
 	public override void Update()

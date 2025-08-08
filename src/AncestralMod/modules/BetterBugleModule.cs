@@ -8,16 +8,15 @@ using UnityEngine.Networking;
 using System.Linq;
 using UnityEngine.Audio;
 using Zorro.Settings;
-using Zorro.Core;
 using AncestralMod.UI;
+using UnityEngine.SceneManagement;
 
 namespace AncestralMod.Modules;
 
 class BetterBugleModule : Module
 {
 
-	private static BetterBugleModule? _instance;
-	public static BetterBugleModule Instance => _instance ??= new BetterBugleModule();
+	public static BetterBugleModule? Instance { get; private set; }
 
 	public static readonly Dictionary<string, AudioType> AudioTypes = new()
 	{
@@ -44,8 +43,22 @@ class BetterBugleModule : Module
 
 	public override void Initialize()
 	{
-		Debug.Log($"Module '{ModuleName}' initialized");
+		if (Instance != null) return;
+		Instance = this;
+		SceneManager.sceneLoaded += OnSceneLoaded;
 		ManageLocalizedText();
+		GetAudioClips();
+		base.Initialize();
+	}
+
+	private static void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+	{
+		if (!BetterBugleUI.Instance)
+		{
+			GameObject uiObject = new("BetterBugleUI");
+			UnityEngine.Object.DontDestroyOnLoad(uiObject);
+			uiObject.AddComponent<BetterBugleUI>();
+		}
 	}
 
 	public override void Destroy()

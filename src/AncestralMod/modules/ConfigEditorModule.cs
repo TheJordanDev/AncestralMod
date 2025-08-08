@@ -3,19 +3,31 @@ using System;
 using System.Reflection;
 using BepInEx.Configuration;
 using AncestralMod.UI;
+using UnityEngine.SceneManagement;
 
 namespace AncestralMod.Modules;
 
 public class ConfigEditorModule : Module
 {
-    public static ConfigEditorModule Instance { get; private set; } = null!;
+	public static ConfigEditorModule? Instance { get; private set; }
     public override string ModuleName => "ConfigEditor";
 
     public override void Initialize()
     {
         if (Instance != null) return;
         Instance = this;
+        SceneManager.sceneLoaded += OnSceneLoaded;
         base.Initialize();
+    }
+
+    private static void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+		if (!ConfigEditorUI.Instance)
+		{
+			GameObject configEditorObject = new("ConfigEditorUI");
+			UnityEngine.Object.DontDestroyOnLoad(configEditorObject);
+			configEditorObject.AddComponent<ConfigEditorUI>();
+		}
     }
 
     public override void Update()
