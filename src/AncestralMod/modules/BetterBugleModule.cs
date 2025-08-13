@@ -116,7 +116,6 @@ class BetterBugleModule : Module
 		BetterBugleUI.Instance?.ShowActionbar("Syncing audio repository...");
 		IsSyncing = true;
 		bool isRepo = git.IsRepository();
-		bool folderChanged = false;
 		if (!isRepo)
 		{
 			bool success = await git.CloneAsync();			
@@ -126,8 +125,6 @@ class BetterBugleModule : Module
 				IsSyncing = false; 
 				return; 
 			}
-			
-			folderChanged = true;
 
 			var clonedFiles = Directory.GetFiles(SoundsDirectory, "*", SearchOption.AllDirectories)
 				.Where(f => !f.Contains(".git")).ToArray();
@@ -159,7 +156,6 @@ class BetterBugleModule : Module
 				
 				if (!success)
 				{
-					folderChanged = true;
 					BetterBugleUI.Instance?.ShowActionbar("Failed to pull audio repository updates.");
 					IsSyncing = false;
 					return;
@@ -188,17 +184,10 @@ class BetterBugleModule : Module
 		}
 
 		IsSyncing = false;
-		if (folderChanged)
-		{
-			BetterBugleUI.Instance?.ShowActionbar("Loading audio clips...");
-			ClearAudioClips();
-			IsLoading = true;
-			Plugin.Instance.StartCoroutine(LoadAllAudioClipsCoroutine(SoundsDirectory));
-		}
-		else
-		{
-			BetterBugleUI.Instance?.ShowActionbar("Audio repository is up to date.");
-		}
+		BetterBugleUI.Instance?.ShowActionbar("Loading audio clips...");
+		ClearAudioClips();
+		IsLoading = true;
+		Plugin.Instance.StartCoroutine(LoadAllAudioClipsCoroutine(SoundsDirectory));
 	}
 
 	private void ClearAudioClips()

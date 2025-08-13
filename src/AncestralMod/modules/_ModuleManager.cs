@@ -21,6 +21,8 @@ public class ModuleManager
         typeof(StashedBugleModule),
         typeof(ConfigEditorModule),
         typeof(BetterBugleModule),
+        typeof(EasyBackpackModule),
+        typeof(BetterRoomModule)
     ];
 
     public void Initialize()

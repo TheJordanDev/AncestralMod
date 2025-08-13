@@ -26,10 +26,10 @@ class StashedBugleModule : Module
 	{
 		if (lastPressTime == null || Time.time - lastPressTime > 1f) lastPressTime = Time.time;
 		else return;
-
+		
 		Character localCharacter = Character.localCharacter;
 		if (localCharacter == null) return;
-
+		
 		Item heldItem = localCharacter.data.currentItem;
 		if (heldItem != null)
 		{
@@ -38,9 +38,10 @@ class StashedBugleModule : Module
 				localCharacter.refs.items.DestroyHeldItemRpc();
 				localCharacter.player.EmptySlot(localCharacter.refs.items.currentSelectedSlot);
 				localCharacter.player.RPCRemoveItemFromSlot(localCharacter.refs.items.currentSelectedSlot.Value);
-				
+
 				localCharacter.refs.items.SpawnItemInHand(_megaphoneItemName);
-			} else if (heldItem.UIData.itemName == _megaphoneItemName)
+			}
+			else if (heldItem.UIData.itemName == _megaphoneItemName)
 			{
 				localCharacter.refs.items.DestroyHeldItemRpc();
 				localCharacter.player.EmptySlot(localCharacter.refs.items.currentSelectedSlot);
@@ -57,7 +58,6 @@ class StashedBugleModule : Module
 				withBugleSlot = itemSlot;
 				break;
 			}
-
 			if (withBugleSlot == null) localCharacter.refs.items.SpawnItemInHand(_bugleItemName);
 			else localCharacter.refs.items.EquipSlot(Optionable<byte>.Some(withBugleSlot.itemSlotID));
 		}

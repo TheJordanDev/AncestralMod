@@ -7,6 +7,12 @@
     <Version>0.1.0</Version>
   </PropertyGroup>
 
+    <PropertyGroup>
+        <DebugType>none</DebugType>
+        <DebugSymbols>false</DebugSymbols>
+        <Optimize>true</Optimize>
+    </PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="LibGit2Sharp" Version="0.30.0">
       <NoWarn>NU1701</NoWarn>

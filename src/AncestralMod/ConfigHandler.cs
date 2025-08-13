@@ -8,9 +8,12 @@ public static class ConfigHandler
     public static ConfigFile config { get; private set; } = null!;
 
     public static ConfigEntry<KeyCode> OpenConfigEditor { get; private set; } = null!;
-    public static ConfigEntry<KeyCode> SyncAudioRepository { get; private set; } = null!;
+
+    // Easy Backpack
+    public static ConfigEntry<KeyCode> OpenBackpack { get; private set; } = null!;
 
     // Better Bugle settings
+    public static ConfigEntry<KeyCode> SyncAudioRepository { get; private set; } = null!;
     public static ConfigEntry<float> BugleVolume { get; private set; } = null!;
     public static ConfigEntry<string> BugleSoundGitRepository { get; private set; } = null!;
     public static ConfigEntry<bool> AutoSyncAudioRepository { get; private set; } = null!;
@@ -32,6 +35,14 @@ public static class ConfigHandler
             "OpenConfigEditor",
             KeyCode.F3,
             "Open Configuration Editor UI"
+        );
+
+        // Easy Backpack settings
+        OpenBackpack = config.Bind(
+            "Key Bindings",
+            "OpenBackpack",
+            KeyCode.B,
+            "Open Easy Backpack UI"
         );
 
         // Better Bugle settings
