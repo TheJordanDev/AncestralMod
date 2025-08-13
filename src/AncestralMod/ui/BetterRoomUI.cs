@@ -62,7 +62,7 @@ public class BetterRoomUI : MonoBehaviour
 		
 		string roomName = PhotonNetwork.CurrentRoom.Name;
 		string playerCount = PhotonNetwork.CurrentRoom.PlayerCount + "/" + PhotonNetwork.CurrentRoom.MaxPlayers;
-		string displayText = $"Players: {playerCount}\nCode: {roomCode}";
+		string displayText = $"Players: {playerCount}\nCode: {roomName}";
 
 		float maxWidth = Screen.width - (offsetX * 2);
 		float textHeight = customStyle.CalcHeight(new GUIContent(displayText), maxWidth);
