@@ -216,7 +216,22 @@ class BetterBugleModule : Module
 		AudioSyncService audioSyncService = AudioSyncService.GetInstance();
 		Dictionary<AudioSyncService.APIAudioFormat, Song?> toDownload = new();
 
-		foreach (AudioSyncService.APIAudioFormat apiAudio in audioSyncService.GetAudioClips())
+		string[] existingSongNames = Song.Songs.Keys.ToArray();
+		AudioSyncService.APIAudioFormat[] existingAPIFormats = [.. audioSyncService.GetAudioClips()];
+		string[] apiExistingNames = [.. existingAPIFormats.Select(apiAudio => apiAudio.Filename)];
+
+		var songsToRemove = existingSongNames.Except(apiExistingNames).ToArray();
+		foreach (var songName in songsToRemove)
+		{
+			if (Song.Songs.TryGetValue(songName, out var songToDispose))
+			{
+				songToDispose.Dispose();
+				songToDispose.DeleteFile();
+			}
+		}
+
+
+		foreach (AudioSyncService.APIAudioFormat apiAudio in existingAPIFormats)
 		{
 			Song? existingSong = Song.SongsByHash.GetValueOrDefault(apiAudio.Hash);
 			if (existingSong == null || existingSong.Hash != apiAudio.Hash)
@@ -310,20 +325,23 @@ public class Song : IDisposable
 		UnityEngine.Object.Destroy(AudioClip);
 	}
 
+	public void DeleteFile()
+	{
+		if (AudioClip == null) return;
+		var filePath = Path.Combine(BetterBugleModule.SoundsDirectory, $"{Name}.{Extension}");
+		if (File.Exists(filePath))
+		{
+			File.Delete(filePath);
+			Debug.Log($"Deleted local file: {filePath}");
+		}
+	}
+
 	public string GenerateHash(string filePath)
 	{
 		using var hasher = SHA256.Create();
 		var fileBytes = File.ReadAllBytes(filePath);
 		var hashBytes = hasher.ComputeHash(fileBytes);
 		return BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
-	}
-
-	public static void DisposeOfSong(Song song)
-	{
-		if (song == null) return;
-		Songs.Remove(song.Name);
-		SongsByHash.Remove(song.Hash);
-		song.Dispose();
 	}
 }
 
