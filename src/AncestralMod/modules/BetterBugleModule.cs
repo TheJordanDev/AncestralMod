@@ -12,6 +12,7 @@ using AncestralMod.UI;
 using AncestralMod.Utils;
 using UnityEngine.SceneManagement;
 using System.Threading.Tasks;
+using System.Security.Cryptography;
 
 namespace AncestralMod.Modules;
 
@@ -97,145 +98,31 @@ class BetterBugleModule : Module
 	{
 		if (IsLoading || IsSyncing) return;
 		if (!Directory.Exists(SoundsDirectory)) return;
-		ClearAudioClips();
 		IsLoading = true;
 		Plugin.Instance.StartCoroutine(LoadAllAudioClipsCoroutine(SoundsDirectory));
 	}
-
-	public void TrySyncAndLoadAudioClips()
-	{
-		if (IsSyncing) return;
-		Task.Run(() => SyncAndLoadAudioClipsCoroutine());
-	}
-
-	private async Task SyncAndLoadAudioClipsCoroutine()
-	{
-		if (IsSyncing || IsLoading) return;
-		
-		GitService git = new(ConfigHandler.BugleSoundGitRepository.Value, SoundsDirectory);		
-		BetterBugleUI.Instance?.ShowActionbar("Syncing audio repository...");
-		IsSyncing = true;
-		bool isRepo = git.IsRepository();
-		if (!isRepo)
-		{
-			bool success = await git.CloneAsync();			
-			if (!success) 
-			{
-				BetterBugleUI.Instance?.ShowActionbar("Failed to clone audio repository."); 
-				IsSyncing = false; 
-				return; 
-			}
-
-			var clonedFiles = Directory.GetFiles(SoundsDirectory, "*", SearchOption.AllDirectories)
-				.Where(f => !f.Contains(".git")).ToArray();
-			
-			if (clonedFiles.Length == 0)
-			{
-				BetterBugleUI.Instance?.ShowActionbar("Checking out files...");
-				bool checkoutSuccess = await git.CheckoutFilesAsync();
-				
-				if (!checkoutSuccess) 
-				{ 
-					BetterBugleUI.Instance?.ShowActionbar("Failed to checkout files from repository."); 
-					IsSyncing = false; 
-					return; 
-				}
-				
-				// Check again after checkout
-				var checkoutFiles = Directory.GetFiles(SoundsDirectory, "*", SearchOption.AllDirectories)
-					.Where(f => !f.Contains(".git")).ToArray();
-			}
-		}
-		else
-		{
-			bool needsPull = await git.NeedsPullAsync();
-			
-			if (needsPull)
-			{
-				bool success = await git.PullAsync();				
-				
-				if (!success)
-				{
-					BetterBugleUI.Instance?.ShowActionbar("Failed to pull audio repository updates.");
-					IsSyncing = false;
-					return;
-				}
-			}
-		}
-
-		
-		var files = Directory.GetFiles(SoundsDirectory, "*", SearchOption.AllDirectories)
-			.Where(f =>
-				!f.Contains($"{Path.DirectorySeparatorChar}.git{Path.DirectorySeparatorChar}") &&
-				Path.GetFileName(f) != ".git" &&
-				!AudioTypes.Keys.Contains(Path.GetExtension(f).TrimStart('.').ToLowerInvariant())
-			).ToList();
-
-		foreach (var file in files)
-		{
-			try
-			{
-				File.Delete(file);
-			}
-			catch (Exception ex)
-			{
-				Debug.LogWarning($"Failed to delete file {file}: {ex.Message}");
-			}
-		}
-
-		IsSyncing = false;
-		BetterBugleUI.Instance?.ShowActionbar("Loading audio clips...");
-		ClearAudioClips();
-		IsLoading = true;
-		Plugin.Instance.StartCoroutine(LoadAllAudioClipsCoroutine(SoundsDirectory));
-	}
-
 	private void ClearAudioClips()
 	{
-		foreach (var song in Song.Songs.Values)
+		foreach (Song song in Song.Songs.Values.ToList())
 		{
-			if (song.AudioClip != null)
-			{
-				var audioSources = UnityEngine.Object.FindObjectsByType<AudioSource>(FindObjectsSortMode.None);
-				foreach (var audioSource in audioSources)
-				{
-					if (audioSource.clip == song.AudioClip)
-					{
-						audioSource.Stop();
-						audioSource.clip = null;
-					}
-				}
-				UnityEngine.Object.Destroy(song.AudioClip);
-			}
+			song.Dispose();
 		}
 		Song.Songs.Clear();
+		Song.SongsByHash.Clear();
 		GC.Collect();
 	}
-
-	private void OnAllAudioClipsLoaded()
-	{
-		if (Song.Songs.Count == 0) Debug.LogWarning("No songs loaded. Please ensure audio files are in the Sounds directory.");
-		else Debug.Log($"🎵 {Song.Songs.Count} songs loaded !");
-		BetterBugleUI.Instance?.ShowActionbar($"{Song.Songs.Count} songs loaded !");
-
-		if (!Song.Songs.ContainsKey(CurrentSongName))
-			CurrentSongName = Song.GetSongNames_Alphabetically()[CurrentSongIndex];
-
-		IsLoading = false;
-	}
-
-	private IEnumerator LoadAllAudioClipsCoroutine(string directoryPath)
+	private IEnumerator LoadAllAudioClipsCoroutine(string directoryPath, string[]? forceReload = null)
 	{
 		List<(string filePath, string ext, string name)> filesToLoad = new();
 
 		foreach (var ext in AudioTypes.Keys)
 		{
-			var files = Directory.GetFiles(directoryPath, $"*.{ext}", SearchOption.TopDirectoryOnly);
+			var files = Directory.GetFiles(directoryPath, $"*.{ext}");
 			foreach (var file in files)
 			{
 				string name = Path.GetFileNameWithoutExtension(file);
-				name = name.Replace("_", " ");
-				if (!Song.Songs.ContainsKey(name))
+    			bool shouldForceReload = forceReload != null && forceReload.Contains($"{name}.{ext}");
+				if (!Song.Songs.ContainsKey(name) || shouldForceReload)
 				{
 					filesToLoad.Add((file, ext, name));
 				}
@@ -244,31 +131,31 @@ class BetterBugleModule : Module
 
 		const int BATCH_SIZE = 2;
 		int loadedCount = 0;
+
 		for (int i = 0; i < filesToLoad.Count; i += BATCH_SIZE)
 		{
-			List<Coroutine> batchCoroutines = new();
+			List<Coroutine> loadCoroutines = new();
 
-			for (int j = i; j < Mathf.Min(i + BATCH_SIZE, filesToLoad.Count); j++)
+			for (int j = i; j < i + Math.Min(BATCH_SIZE, filesToLoad.Count - i) && j < filesToLoad.Count; j++)
 			{
 				var (filePath, ext, name) = filesToLoad[j];
-				Coroutine loadCoroutine = Plugin.Instance.StartCoroutine(LoadAudioClipCoroutine(filePath, ext, name, Song.Songs));
-				batchCoroutines.Add(loadCoroutine);
+				bool forceReloadClip = forceReload != null && forceReload.Contains($"{name}.{ext}");
+				Coroutine loadCoroutine = Plugin.Instance.StartCoroutine(LoadAudioClipCoroutine(filePath, ext, name, forceReloadClip));
+				loadCoroutines.Add(loadCoroutine);
 			}
 
-			// Wait for this batch to complete
-			foreach (var coroutine in batchCoroutines) yield return coroutine;
-			loadedCount += batchCoroutines.Count;
-
-			BetterBugleUI.Instance?.ShowActionbar($"Loading songs... {loadedCount}/{filesToLoad.Count}");
-			yield return null;
+			foreach (var coroutine in loadCoroutines) yield return coroutine;
+			loadedCount += loadCoroutines.Count;
+			BetterBugleUI.Instance?.ShowActionbar($"Loading audio clips... {loadedCount}/{filesToLoad.Count}");
 		}
-
 		OnAllAudioClipsLoaded();
 	}
-
-	private IEnumerator LoadAudioClipCoroutine(string filePath, string ext, string name, Dictionary<string, Song> songs)
+	private IEnumerator LoadAudioClipCoroutine(string filePath, string ext, string name, bool forceReload = false)
 	{
-		using UnityWebRequest www = UnityWebRequestMultimedia.GetAudioClip("file://" + filePath, AudioTypes[ext]);
+
+		Debug.Log($"Loading audio clip: {name}.{ext} from {filePath}" + (forceReload ? " (forced reload)" : ""));
+
+		using UnityWebRequest www = UnityWebRequestMultimedia.GetAudioClip($"file://{filePath}", AudioTypes[ext]);
 		yield return www.SendWebRequest();
 
 		if (www.result != UnityWebRequest.Result.Success)
@@ -277,45 +164,167 @@ class BetterBugleModule : Module
 			yield break;
 		}
 
-		if (songs.ContainsKey(name))
+		bool songExists = Song.Songs.ContainsKey(name);
+
+		Debug.Log($"Audio clip '{name}' exists: {songExists}. Force reload: {forceReload}");
+
+		if (songExists && !forceReload)
 		{
-			Debug.LogWarning($"Audio clip '{name}' already loaded, skipping duplicate.");
+			Debug.LogWarning($"Audio clip with name '{name}' already exists. Skipping duplicate.");
 			yield break;
 		}
 
-		AudioClip clip = DownloadHandlerAudioClip.GetContent(www);
-		if (clip == null) yield break;
+		if (songExists && forceReload)
+		{
+			Song? previousSong = Song.Songs.TryGetValue(name, out var existingSong) ? existingSong : null;
+			previousSong?.Dispose();
+		}
 
-		songs[name] = new Song(name, filePath, clip);
+		AudioClip audioClip = DownloadHandlerAudioClip.GetContent(www);
+		if (audioClip == null)
+		{
+			Debug.LogError($"Failed to load audio clip from {filePath}: {www.error}");
+			yield break;
+		}
+
+		Song song = new(name, ext, filePath, audioClip);
+		song.register();
 		Debug.Log($"Loaded audio clip: {name} from {filePath}");
 	}
+	private void OnAllAudioClipsLoaded()
+	{
+		if (Song.Songs.Count == 0) Debug.LogWarning("No songs loaded. Please ensure audio files are in the Sounds directory.");
+		else Debug.Log($"🎵 {Song.Songs.Count} songs loaded !");
+		BetterBugleUI.Instance?.ShowActionbar($"{Song.Songs.Count} songs loaded !");
+		if (!Song.Songs.ContainsKey(CurrentSongName))
+			CurrentSongName = Song.GetSongNames_Alphabetically()[CurrentSongIndex];
+		IsLoading = false;
+	}
 
+	public void TrySyncAndLoadAudioClips()
+	{
+		if (IsLoading || IsSyncing) return;
+		Task.Run(() =>
+		{
+			SyncAndLoadAudioClipsCoroutine().GetAwaiter().GetResult();
+		});
+	}
+	private async Task SyncAndLoadAudioClipsCoroutine()
+	{
+		if (IsLoading || IsSyncing) return;
+		IsSyncing = true;
+		AudioSyncService audioSyncService = AudioSyncService.GetInstance();
+		Dictionary<AudioSyncService.APIAudioFormat, Song?> toDownload = new();
+
+		foreach (AudioSyncService.APIAudioFormat apiAudio in audioSyncService.GetAudioClips())
+		{
+			Song? existingSong = Song.SongsByHash.GetValueOrDefault(apiAudio.Hash);
+			if (existingSong == null || existingSong.Hash != apiAudio.Hash)
+			{
+				toDownload.Add(apiAudio, existingSong);
+			}
+		}
+
+		BetterBugleUI.Instance?.ShowActionbar($"Syncing audio bank... {toDownload.Count} changed/new files found.");
+
+		string[] filesToOverload = [];
+
+		foreach (AudioSyncService.APIAudioFormat apiAudio in toDownload.Keys)
+		{
+			bool success = await DownloadAPIAudio(apiAudio, toDownload[apiAudio]);
+			if (success)
+			{
+				Debug.Log($"Successfully downloaded audio: {apiAudio.Filename}.{apiAudio.Extension}, adding to forceload");
+				filesToOverload = [.. filesToOverload, $"{apiAudio.Filename}.{apiAudio.Extension}"];
+			}
+		}
+		IsSyncing = false;
+		IsLoading = true;
+		Plugin.Instance.StartCoroutine(LoadAllAudioClipsCoroutine(SoundsDirectory, filesToOverload));
+	}
+	private async Task<bool> DownloadAPIAudio(AudioSyncService.APIAudioFormat apiAudio, Song? existingSong = null)
+	{
+		bool success = true;
+		try
+		{
+			if (existingSong != null && apiAudio.Filename != existingSong.Name)
+			{
+				File.Delete(Path.Combine(SoundsDirectory, $"{existingSong.Name}.{existingSong.Extension}"));
+			}
+			await apiAudio.DownloadToFolder(SoundsDirectory);
+		}
+		catch (Exception ex)
+		{
+			Debug.LogError($"Failed to download API audio: {ex.Message}");
+			success = false;
+		}
+		return success;
+	}
 }
 
 public class Song : IDisposable
 {
 	public static readonly Dictionary<string, Song> Songs = new();
+	public static readonly Dictionary<string, Song> SongsByHash = new();
 
 	public static List<string> GetSongNames_Alphabetically()
 	{
 		return [.. new List<string>(Songs.Keys).OrderBy(name => name)];
 	}
 
-	public string Name { get; }
-	public string FilePath { get; }
+	public string Name { get; set; }
+	public string Extension { get; set; }
+	public string FilePath { get; set; }
 	public AudioClip AudioClip { get; }
+	public string Hash { get; }
 
-	public Song(string name, string filePath, AudioClip audioClip)
+	public Song(string name, string extension, string filePath, AudioClip audioClip)
 	{
 		Name = name;
+		Extension = extension;
 		FilePath = filePath;
 		AudioClip = audioClip;
+		Hash = GenerateHash(filePath);
+	}
+
+	public void register()
+	{
+		Songs[Name] = this;
+		SongsByHash[Hash] = this;
 	}
 
 	public void Dispose()
-    {
-        if (AudioClip != null) UnityEngine.Object.Destroy(AudioClip);
-    }
+	{
+		if (AudioClip == null) return;
+		var audioSources = UnityEngine.Object.FindObjectsByType<AudioSource>(FindObjectsSortMode.None);
+		foreach (var audioSource in audioSources)
+		{
+			if (audioSource.clip == AudioClip)
+			{
+				audioSource.Stop();
+				audioSource.clip = null;
+			}
+		}
+		Songs.Remove(Name);
+		SongsByHash.Remove(Hash);
+		UnityEngine.Object.Destroy(AudioClip);
+	}
+
+	public string GenerateHash(string filePath)
+	{
+		using var hasher = SHA256.Create();
+		var fileBytes = File.ReadAllBytes(filePath);
+		var hashBytes = hasher.ComputeHash(fileBytes);
+		return BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
+	}
+
+	public static void DisposeOfSong(Song song)
+	{
+		if (song == null) return;
+		Songs.Remove(song.Name);
+		SongsByHash.Remove(song.Hash);
+		song.Dispose();
+	}
 }
 
 public class BetterBugleSFX : MonoBehaviourPun

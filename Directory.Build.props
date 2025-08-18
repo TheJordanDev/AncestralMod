@@ -30,10 +30,6 @@
     <ItemGroup>
       <BuiltFiles Include="$(TargetPath)" />
       <BuiltFiles Include="$(TargetDir)$(TargetName).pdb" Condition="Exists('$(TargetDir)$(TargetName).pdb')" />
-      <!-- Copy LibGit2Sharp dependencies -->
-      <BuiltFiles Include="$(TargetDir)LibGit2Sharp.dll" Condition="Exists('$(TargetDir)LibGit2Sharp.dll')" />
-      <Git2Files Include="$(TargetDir)git2-*.dll" />
-      <BuiltFiles Include="@(Git2Files)" />
     </ItemGroup>
     
     <PropertyGroup>

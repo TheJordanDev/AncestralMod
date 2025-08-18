@@ -87,7 +87,7 @@ public class BetterBuglePatch
 		BetterBugleModule.CurrentSongName = Song.GetSongNames_Alphabetically()[BetterBugleModule.CurrentSongIndex];
 
 		Song currentSong = Song.Songs[BetterBugleModule.CurrentSongName];
-		BetterBugleUI.Instance?.ShowActionbar($"{BetterBugleModule.CurrentSongIndex + 1} | {currentSong.Name}");
+		BetterBugleUI.Instance?.ShowActionbar($"{BetterBugleModule.CurrentSongIndex + 1} | {currentSong.Name.Replace("_", " ")}");
 	}
 
 	[HarmonyPatch(typeof(CharacterItems), "Awake")]

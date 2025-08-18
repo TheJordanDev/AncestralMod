@@ -22,7 +22,7 @@ public class ModuleManager
         typeof(ConfigEditorModule),
         typeof(BetterBugleModule),
         typeof(EasyBackpackModule),
-        typeof(BetterRoomModule)
+        // typeof(BetterRoomModule)
     ];
 
     public void Initialize()
@@ -34,7 +34,7 @@ public class ModuleManager
 
     public List<Module> GetAllModules()
     {
-        return _modules.Values.ToList();
+        return [.. _modules.Values];
     }
 
     private void AddNetworkEventListener()
