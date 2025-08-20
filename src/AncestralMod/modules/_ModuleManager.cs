@@ -22,6 +22,7 @@ public class ModuleManager
         typeof(ConfigEditorModule),
         typeof(BetterBugleModule),
         typeof(EasyBackpackModule),
+        typeof(OpenMesaModule),
         // typeof(BetterRoomModule)
     ];
 

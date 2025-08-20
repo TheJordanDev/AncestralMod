@@ -37,7 +37,9 @@ class BetterBugleModule : Module
 	public static string CurrentSongName { get; set; } = "None";
 	public static bool HadConfirmation { get; set; } = false;
 
-	public static Song lastPlayedSong = null!;
+	public static bool IsPlaying = false;
+	public static AudioSource? CurrentAudioSource { get; set; } = null;
+
 	public override string ModuleName => "BetterBugle";
 
 	public static readonly string bugleItemName = "Bugle";
@@ -370,7 +372,13 @@ public class BetterBugleSFX : MonoBehaviourPun
 		audioSource.spatialBlend = 1f;
 		audioSource.volume = 0f;
 		audioSource.loop = true;
+		if (IsLocal()) BetterBugleModule.CurrentAudioSource = audioSource;
 		song = Song.Songs.GetValueOrDefault(BetterBugleModule.CurrentSongName);
+	}
+
+	private bool IsLocal()
+	{
+		return item?._holderCharacter == Character.localCharacter;
 	}
 
 	private void Update()
@@ -384,11 +392,13 @@ public class BetterBugleSFX : MonoBehaviourPun
 			audioSource.Play();
 			audioSource.volume = GetVolume;
 			isTooting = true;
+			if (IsLocal()) BetterBugleModule.IsPlaying = true;
 		}
 
 		if (!hold && isTooting)
 		{
 			isTooting = false;
+			if (IsLocal()) BetterBugleModule.IsPlaying = false;
 		}
 
 		if (hold) audioSource.volume = Mathf.Lerp(audioSource.volume, GetVolume, 10f * Time.deltaTime);

@@ -65,6 +65,7 @@ public class BetterBuglePatch
 
 	private static IEnumerator ResetConfirmation()
 	{
+		if (!BetterBugleModule.HadConfirmation) yield break;
 		yield return new WaitForSeconds(2f);
 		BetterBugleUI.Instance?.ShowActionbar("No answer, not refreshing songs.");
 		BetterBugleModule.HadConfirmation = false;
